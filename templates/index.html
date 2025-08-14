@@ -1,0 +1,129 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Receitas</h6>
+        <h3>R$ {{ '%.2f'|format(total_receita) }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Despesas</h6>
+        <h3>R$ {{ '%.2f'|format(total_despesa) }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Lucro Líquido</h6>
+        <h3 class="{{ 'text-success' if lucro>=0 else 'text-danger' }}">R$ {{ '%.2f'|format(lucro) }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="mb-3">% por Categoria (Receitas + Despesas)</h6>
+        <canvas id="pieCat"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="mb-3">Totais por Tipo</h6>
+        <canvas id="barType"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="mb-3">Últimas transações</h6>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th class="text-end">Valor (R$)</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recent %}
+              <tr>
+                <td>{{ r['date'] }}</td>
+                <td>{{ r['type'] }}</td>
+                <td>{{ r['category'] }}</td>
+                <td>{{ r['description'] }}</td>
+                <td class="text-end">{{ '%.2f'|format(r['value']) }}</td>
+                <td>{{ r['status'] }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted">Sem dados ainda.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Dados passados do Flask
+const catLabels = {{ cat_labels|tojson }};
+const catValues = {{ cat_values|tojson }};
+const typeLabels = {{ type_labels|tojson }};
+const typeValues = {{ type_values|tojson }};
+
+// Pizza por categoria (percentual calculado pelo Chart.js como proporção dos valores)
+const pieCtx = document.getElementById('pieCat').getContext('2d');
+new Chart(pieCtx, {
+  type: 'pie',
+  data: {
+    labels: catLabels,
+    datasets: [{
+      data: catValues
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { position: 'bottom' }
+    }
+  }
+});
+
+// Barras por tipo
+const barCtx = document.getElementById('barType').getContext('2d');
+new Chart(barCtx, {
+  type: 'bar',
+  data: {
+    labels: typeLabels,
+    datasets: [{
+      label: 'Totais (R$)',
+      data: typeValues
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: true, position: 'bottom' }
+    },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+</script>
+{% endblock %}
