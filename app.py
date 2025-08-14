@@ -6,9 +6,9 @@ from datetime import datetime, date
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
 
-db_url = os.environ.get('DATABASE_URL')
-if not db_url:
-    raise ValueError("Defina DATABASE_URL!")
+# Força o banco remoto do Render
+db_url = os.environ.get('DATABASE_URL') or \
+    "postgresql://dreamstay_db_4t0w_user:pMB0YohKy1V0feXSuszfK9jEao6c8ZRK@dpg-d2f44dk9c44c73dpp7kg-a.oregon-postgres.render.com/dreamstay_db_4t0w"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -59,13 +59,10 @@ def index():
     by_type = group_by_type()
     recent = recent_transactions()
 
-    # Dados para gráficos
     cat_labels = [r.category for r in by_cat] or ["Sem dados"]
     cat_values = [float(r.receita + r.despesa) for r in by_cat] or [0]
     type_labels = [r.type for r in by_type] or ["Receita", "Despesa"]
     type_values = [float(r.total) for r in by_type] or [0,0]
-
-    # Paleta de cores moderna
     palette = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#7f7f7f']
 
     html = '''
