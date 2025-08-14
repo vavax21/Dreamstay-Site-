@@ -2,6 +2,7 @@ from flask import Flask, render_template_string, request, redirect, url_for, sen
 from flask_sqlalchemy import SQLAlchemy
 import os, io, csv, secrets
 from datetime import datetime, date
+from sqlalchemy import case, func
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
@@ -28,8 +29,6 @@ with app.app_context():
     db.create_all()
 
 # ---------- Utils ----------
-from sqlalchemy import case, func, text
-
 def get_totals():
     receita = db.session.query(func.coalesce(func.sum(Transaction.value), 0))\
         .filter(Transaction.type=='Receita', Transaction.status!='Cancelado').scalar()
@@ -38,18 +37,16 @@ def get_totals():
     return receita, despesa, receita - despesa
 
 def group_by_category():
-    # Ajuste do case() para SQLAlchemy 2.x
+    receita_expr = func.sum(case((Transaction.type=='Receita', Transaction.value), else_=0))
+    despesa_expr = func.sum(case((Transaction.type=='Despesa', Transaction.value), else_=0))
+    
     rows = db.session.query(
         Transaction.category,
-        func.sum(case(
-            (Transaction.type=='Receita', Transaction.value),
-            else_=0
-        )).label('receita'),
-        func.sum(case(
-            (Transaction.type=='Despesa', Transaction.value),
-            else_=0
-        )).label('despesa')
-    ).group_by(Transaction.category).order_by(text('receita + despesa DESC')).all()
+        receita_expr.label('receita'),
+        despesa_expr.label('despesa')
+    ).group_by(Transaction.category)\
+     .order_by((receita_expr + despesa_expr).desc())\
+     .all()
     return rows
 
 def group_by_type():
@@ -74,7 +71,7 @@ def index():
     type_values = [float(r.total) for r in by_type] or [0,0]
     palette = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#7f7f7f']
 
-    html = '''...'''  # Mantém o template que você já tinha, sem alterações
+    html = '''...'''  # Mantém o template que você já tinha
 
     return render_template_string(html, receita=receita, despesa=despesa, lucro=lucro,
                                   recent=recent, cat_labels=cat_labels, cat_values=cat_values,
