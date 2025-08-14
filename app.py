@@ -11,7 +11,11 @@ app = Flask(__name__)
 app.secret_key = "replace-this-with-a-random-secret"  # necessário para flash messages
 
 # ------------- DB Setup -------------
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+db_url = os.environ.get('DATABASE_URL')
+if not db_url:
+    raise ValueError("A variável de ambiente DATABASE_URL não está definida!")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
